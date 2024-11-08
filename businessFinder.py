@@ -76,8 +76,11 @@ def get_businesses_grid_search(center_lat, center_lng, radius, api_key):
             next_page_token = data.get('next_page_token')
             if not next_page_token:
                 break
-        time.sleep(1)  # To avoid hitting rate limits
+        if(idx % 10 == 0):
+            print(f"Found {len(businesses)}")
+        #time.sleep(1)  # To avoid hitting rate limits
     unique_businesses = {business['place_id']: business for business in businesses}.values()
+    print(f"{len(unique_businesses)} Unique businesses")
     return list(unique_businesses)
 
 # Get phone and website details
@@ -105,21 +108,24 @@ def load_previous_results(zip_code, n):
 unwanted_types = ['point_of_interest', 'establishment']
 
 # Main function to filter businesses
-def filter_businesses(businesses, api_key, previous_stores):
+def filter_businesses(businesses, api_key, previous_stores, n):
     results = []
     for i, business in enumerate(businesses, start=1):
         if business['name'] not in previous_stores:
             details = get_business_details(business['place_id'], api_key)
             business_types = business['types'].split(',')  # Assuming types are comma-separated in the string
             filtered_types = [t.strip() for t in business_types if t not in unwanted_types]
+            filtered_types_string = ', '.join(filtered_types)
             if details['phone'] and not details['website']:
                 results.append({
                     'Name': business['name'],
                     'Address': business['address'],
                     'Phone': details['phone'],
-                    'Types':filtered_types
+                    'Types':filtered_types_string
                 })
             print(f"Processed {i} of {len(businesses)} businesses; found {len(results)} matching criteria.")
+            if len(results) >= n:  # Stop once we have at least n results
+                break
     return results
 
 # Main script entry point
@@ -145,7 +151,8 @@ def main():
             businesses = get_businesses_grid_search(lat, lng, max_radius, API_KEY)
             print(f"Total businesses found at {max_radius} meters: {len(businesses)}")
             
-            filtered_businesses = filter_businesses(businesses, API_KEY, previous_stores)
+            # Filter those which has phone but not website
+            filtered_businesses = filter_businesses(businesses, API_KEY, previous_stores, args.n - len(found_businesses))
             print(f"Total new businesses matching criteria: {len(filtered_businesses)}")
 
             # Append until we reach n unique businesses
