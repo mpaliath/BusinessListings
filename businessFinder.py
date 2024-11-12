@@ -5,6 +5,7 @@ import argparse
 import os
 import glob
 import time
+from dotenv import load_dotenv
 
 # Set up command-line argument parsing
 def parse_arguments():
@@ -131,7 +132,10 @@ def filter_businesses(businesses, api_key, previous_stores, n):
 # Main script entry point
 def main():
     args = parse_arguments()
-    API_KEY = 'AIzaSyC0X90_PyI69OmOg9ZY02AFXpATx73NW9U'
+    
+    # Access the secret variable
+    load_dotenv()
+    API_KEY = os.getenv('API_KEY')
 
     lat, lng = get_lat_lng(args.zip_code, API_KEY)
     if lat and lng:
